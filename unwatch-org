@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+import sys
+import requests
+import json
+import itertools
+
+def subscriptions(user, passwd):
+    base = "https://api.github.com/users/%s/subscriptions"
+    url = base % user
+
+    req = requests.get(url, auth=requests.auth.HTTPBasicAuth(user, passwd))
+    data = req.json()
+    for repo in data:
+        yield repo
+
+def repos(org, user, passwd):
+    base = "https://api.github.com/orgs/%s/repos?page=%d"
+    page = 1
+    while True:
+        req = requests.get(base % (org, page), auth=requests.auth.HTTPBasicAuth(user, passwd))
+        page += 1
+        data = req.json()
+        if len(data) == 0:
+            break
+        for repo in data:
+            yield repo
+
+def delsub(repo, user, passwd):
+    base = "https://api.github.com/repos/%s/subscription"
+    url = base % repo
+
+    req = requests.get(url, auth=requests.auth.HTTPBasicAuth(user, passwd))
+    data = req.json()
+    if "subscribed" in data and "ignored" in data:
+        if data["subscribed"] == True and data["ignored"] == False:
+            req = requests.delete(url, auth=requests.auth.HTTPBasicAuth(user, passwd))
+            print "delsubbed ", repo
+            return
+
+def run():
+    _, user, passwd, org = sys.argv
+
+    subscribed = [ repo["full_name"] for repo in subscriptions(user, passwd) ]
+
+    keep = lambda i: i["full_name"] not in subscribed
+
+    for repo in itertools.ifilter(keep, repos(org, user, passwd)):
+        delsub(repo["full_name"], user, passwd)
+
+if __name__ == '__main__':
+    run()
