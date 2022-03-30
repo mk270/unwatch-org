@@ -3,7 +3,6 @@
 import sys
 import requests
 import json
-import itertools
 
 def subscriptions(user, passwd):
     base = "https://api.github.com/users/%s/subscriptions"
@@ -35,7 +34,7 @@ def delsub(repo, user, passwd):
     if "subscribed" in data and "ignored" in data:
         if data["subscribed"] == True and data["ignored"] == False:
             req = requests.delete(url, auth=requests.auth.HTTPBasicAuth(user, passwd))
-            print "delsubbed ", repo
+            print(f"delsubbed {repo}")
             return
 
 def run():
@@ -45,7 +44,7 @@ def run():
 
     keep = lambda i: i["full_name"] not in subscribed
 
-    for repo in itertools.ifilter(keep, repos(org, user, passwd)):
+    for repo in filter(keep, repos(org, user, passwd)):
         delsub(repo["full_name"], user, passwd)
 
 if __name__ == '__main__':
